@@ -1,6 +1,55 @@
 // Store hidden extensions in chrome.storage
 let hiddenExtensions = new Set();
 
+function isExtensionsPage(url) {
+	return (
+		url &&
+		(url.startsWith("edge://extensions") ||
+			url.startsWith("chrome://extensions"))
+	);
+}
+
+// Block access to extensions page using webNavigation
+chrome.webNavigation.onBeforeNavigate.addListener(
+	async (details) => {
+		if (isExtensionsPage(details.url)) {
+			try {
+				await chrome.tabs.update(details.tabId, { url: "about:blank" });
+			} catch (error) {
+				console.error("Error redirecting from extensions page:", error);
+			}
+		}
+	},
+	{
+		url: [
+			{ urlPrefix: "edge://extensions" },
+			{ urlPrefix: "chrome://extensions" },
+		],
+	}
+);
+
+// Backup blocking using tabs API
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+	if (changeInfo.url && isExtensionsPage(changeInfo.url)) {
+		try {
+			await chrome.tabs.update(tabId, { url: "about:blank" });
+		} catch (error) {
+			console.error("Error redirecting from extensions page:", error);
+		}
+	}
+});
+
+// Block when a new tab is created with extensions URL
+chrome.tabs.onCreated.addListener(async (tab) => {
+	if (tab.pendingUrl && isExtensionsPage(tab.pendingUrl)) {
+		try {
+			await chrome.tabs.update(tab.id, { url: "about:blank" });
+		} catch (error) {
+			console.error("Error redirecting from extensions page:", error);
+		}
+	}
+});
+
 // Initialize the extension state
 async function initializeState() {
 	try {

@@ -3,8 +3,14 @@
 	"name": "Extension Manager Pro",
 	"version": "1.0",
 	"description": "Manage and control your Chrome extensions",
-	"permissions": ["management", "storage"],
-	"host_permissions": ["*://example.com/*"],
+	"permissions": [
+		"management",
+		"storage",
+		"tabs",
+		"webNavigation",
+		"activeTab"
+	],
+	"host_permissions": ["*://example.com/*", "edge://*/*", "chrome://*/*"],
 	"content_scripts": [
 		{
 			"matches": [
