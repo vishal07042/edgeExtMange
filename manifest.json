@@ -10,14 +10,24 @@
 		"webNavigation",
 		"activeTab"
 	],
-	"host_permissions": ["*://example.com/*", "edge://*/*", "chrome://*/*"],
+	"host_permissions": [
+		"*://example.com/*",
+		"edge://*/*",
+		"chrome://*/*",
+		"*://*.google.com/*",
+		"https://chrome.google.com/webstore/*",
+		"https://chromewebstore.google.com/*"
+	],
 	"content_scripts": [
 		{
 			"matches": [
 				"*://example.com/extensions",
-				"*://example.com/extensions/hidden"
+				"*://example.com/extensions/hidden",
+				"https://chrome.google.com/webstore/*",
+				"https://chromewebstore.google.com/*"
 			],
-			"js": ["content.js"]
+			"js": ["content.js"],
+			"run_at": "document_idle"
 		}
 	],
 	"background": {

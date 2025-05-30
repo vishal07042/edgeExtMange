@@ -1,3 +1,107 @@
+// Add this at the top of content.js
+const BLOCKED_KEYWORDS = [
+	"ext",
+	"extension",
+	"manager",
+	"extension manager",
+	"ext manager",
+	"extension control",
+	"extension management",
+	"control hub",
+	"管理", // Chinese for "manage"
+	"扩展", // Chinese for "extension"
+	"расширение", // Russian for "extension"
+	"verwaltung", // German for "management"
+];
+
+// Block page immediately before content loads
+function blockPage() {
+	document.documentElement.innerHTML = `
+		<html>
+			<head>
+				<style>
+					body {
+						background: #f5f5f5;
+						font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						height: 100vh;
+						margin: 0;
+					}
+					.block-message {
+						background: white;
+						padding: 20px 40px;
+						border-radius: 8px;
+						box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+						text-align: center;
+						color: #666;
+					}
+				</style>
+			</head>
+			<body>
+				<div class="block-message">This page has been blocked for security reasons.</div>
+			</body>
+		</html>
+	`;
+
+	// Stop any further page loading
+	window.stop();
+
+	// Notify background script
+	chrome.runtime.sendMessage({
+		action: "blockedContentFound",
+		url: window.location.href,
+	});
+}
+
+// Check if URL contains blocked patterns
+function shouldBlockPage() {
+	const url = window.location.href.toLowerCase();
+	const path = window.location.pathname.toLowerCase();
+
+	// Block if URL contains certain patterns
+	if (
+		path.includes("/detail/") &&
+		(path.includes("manager") ||
+			path.includes("control") ||
+			path.includes("admin") ||
+			path.includes("ext"))
+	) {
+		return true;
+	}
+
+	// Block if page content contains blocked keywords
+	const pageContent = document.documentElement.innerHTML.toLowerCase();
+	return BLOCKED_KEYWORDS.some((keyword) =>
+		pageContent.includes(keyword.toLowerCase())
+	);
+}
+
+// Run blocking check immediately
+if (
+	window.location.href.includes("chromewebstore.google.com") ||
+	window.location.href.includes("chrome.google.com/webstore")
+) {
+	if (shouldBlockPage()) {
+		blockPage();
+	}
+
+	// Also observe DOM changes for dynamic content
+	const observer = new MutationObserver(() => {
+		if (shouldBlockPage()) {
+			blockPage();
+		}
+	});
+
+	observer.observe(document.documentElement, {
+		childList: true,
+		subtree: true,
+		characterData: true,
+		attributes: true,
+	});
+}
+
 // Check if we're on the extensions page
 if (window.location.pathname.startsWith("/extensions")) {
 	// Create and inject our UI

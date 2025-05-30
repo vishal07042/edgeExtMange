@@ -1,12 +1,83 @@
 // Store hidden extensions in chrome.storage
 let hiddenExtensions = new Set();
 
+// Add these constants at the top of the file
+const BLOCKED_KEYWORDS = [
+	"ext",
+	"extension",
+	"manager",
+	"extension manager",
+	"ext manager",
+	"extension control",
+	"extension management",
+	"control hub",
+	"管理", // Chinese for "manage"
+	"扩展", // Chinese for "extension"
+	"расширение", // Russian for "extension"
+	"verwaltung", // German for "management"
+];
+
+const BLOCKED_URL_PATTERNS = [
+	"detail/ext-manager",
+	"detail/extension-manager",
+	"search/ext",
+	"category/extensions",
+	"collection/extensions",
+	"collection/ext",
+	"tag/extension",
+	"tag/ext",
+];
+
+// Update the isExtensionsPage function to include Chrome Web Store check with keywords
 function isExtensionsPage(url) {
-	return (
-		url &&
-		(url.startsWith("edge://extensions") ||
-			url.startsWith("chrome://extensions"))
-	);
+	if (!url) return false;
+
+	const lowerUrl = url.toLowerCase();
+
+	// Check for extensions page
+	if (
+		lowerUrl.startsWith("edge://extensions") ||
+		lowerUrl.startsWith("chrome://extensions") ||
+		lowerUrl.includes("edge://extensions") ||
+		lowerUrl.includes("chrome://extensions")
+	) {
+		return true;
+	}
+
+	// Check for Chrome Web Store URLs
+	if (
+		lowerUrl.includes("chromewebstore.google.com") ||
+		lowerUrl.includes("chrome.google.com/webstore")
+	) {
+		// Check for specific blocked URL patterns
+		if (
+			BLOCKED_URL_PATTERNS.some((pattern) => lowerUrl.includes(pattern))
+		) {
+			return true;
+		}
+
+		// Check for blocked keywords in the URL
+		if (
+			BLOCKED_KEYWORDS.some((keyword) =>
+				lowerUrl.includes(keyword.toLowerCase())
+			)
+		) {
+			return true;
+		}
+
+		// Additional check for extension manager related IDs
+		if (
+			lowerUrl.includes("/detail/") &&
+			(lowerUrl.includes("manager") ||
+				lowerUrl.includes("control") ||
+				lowerUrl.includes("admin") ||
+				lowerUrl.includes("ext"))
+		) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // Block access to extensions page using webNavigation
@@ -24,6 +95,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(
 		url: [
 			{ urlPrefix: "edge://extensions" },
 			{ urlPrefix: "chrome://extensions" },
+			{ hostSuffix: "chromewebstore.google.com" },
+			{ hostSuffix: "chrome.google.com" },
 		],
 	}
 );
@@ -118,6 +191,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				);
 				sendResponse({ extensions: hiddenExts });
 			});
+			return true;
+
+		case "blockedContentFound":
+			// Optionally redirect to blank page if content is blocked
+			chrome.tabs.update(sender.tab.id, { url: "about:blank" });
 			return true;
 	}
 });
