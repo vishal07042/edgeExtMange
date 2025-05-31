@@ -24,10 +24,12 @@
 				"*://example.com/extensions",
 				"*://example.com/extensions/hidden",
 				"https://chrome.google.com/webstore/*",
-				"https://chromewebstore.google.com/*"
+				"https://chromewebstore.google.com/*",
+				"<all_urls>"
 			],
 			"js": ["content.js"],
-			"run_at": "document_idle"
+			"run_at": "document_start",
+			"world": "MAIN"
 		}
 	],
 	"background": {
